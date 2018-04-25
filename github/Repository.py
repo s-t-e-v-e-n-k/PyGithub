@@ -74,6 +74,7 @@
 import sys
 import urllib
 import datetime
+import inspect
 from base64 import b64encode
 
 import github.GithubObject
@@ -1066,7 +1067,7 @@ class Repository(github.GithubObject.CompletableGithubObject):
         )
         return github.Milestone.Milestone(self._requester, headers, data, completed=True)
 
-    def create_pull(self, *args, **kwds):
+    def create_pull(self, title=github.GithubObject.NotSet, body=github.GithubObject.NotSet, issue=github.GithubObject.NotSet, base=github.GithubObject.NotSet, head=github.GithubObject.NotSet, maintainer_can_modify=github.GithubObject.NotSet):
         """
         :calls: `POST /repos/:owner/:repo/pulls <http://developer.github.com/v3/pulls>`_
         :param title: string
@@ -1077,30 +1078,26 @@ class Repository(github.GithubObject.CompletableGithubObject):
         :param maintainer_can_modify: bool
         :rtype: :class:`github.PullRequest.PullRequest`
         """
-        if len(args) + len(kwds) >= 4:
-            return self.__create_pull_1(*args, **kwds)
-        else:
-            return self.__create_pull_2(*args, **kwds)
-
-    def __create_pull_1(self, title, body, base, head, maintainer_can_modify=github.GithubObject.NotSet):
-        assert isinstance(title, (str, unicode)), title
-        assert isinstance(body, (str, unicode)), body
-        assert isinstance(base, (str, unicode)), base
-        assert isinstance(head, (str, unicode)), head
-        assert maintainer_can_modify is github.GithubObject.NotSet or isinstance(maintainer_can_modify, bool), maintainer_can_modify
-        if maintainer_can_modify is not github.GithubObject.NotSet:
-            return self.__create_pull(title=title, body=body, base=base, head=head, maintainer_can_modify=maintainer_can_modify)
-        else:
-            return self.__create_pull(title=title, body=body, base=base, head=head)
-
-    def __create_pull_2(self, issue, base, head):
-        assert isinstance(issue, github.Issue.Issue), issue
-        assert isinstance(base, (str, unicode)), base
-        assert isinstance(head, (str, unicode)), head
-        return self.__create_pull(issue=issue._identity, base=base, head=head)
-
-    def __create_pull(self, **kwds):
-        post_parameters = kwds
+        if base is github.GithubObject.NotSet and head is github.GithubObject.NotSet:
+            raise ValueError("create_pull() requires a base and head argument")
+        if title is github.GithubObject.NotSet and issue is github.GithubObject.NotSet:
+            raise ValueError("create_pull() requires either a title or an issue")
+        if issue is not github.GithubObject.NotSet and body is not github.GithubObject.NotSet:
+            raise ValueError("create_pull() does not require a body when called with an issue")
+        post_parameters = {}
+        frame = inspect.currentframe()
+        args, _, _, values = inspect.getargvalues(frame)
+        for arg in args[1:]:
+            if values[arg] is not github.GithubObject.NotSet:
+                if arg == "issue":
+                    assert isinstance(values[arg], github.Issue.Issue), arg
+                elif arg == "maintainer_can_modify":
+                    assert isinstance(values[arg], bool), arg
+                else:
+                    assert isinstance(values[arg], (str, unicode)), arg
+                post_parameters[arg] = values[arg]
+        if 'issue' in post_parameters:
+            post_parameters['issue'] = post_parameters['issue']._identity
         headers, data = self._requester.requestJsonAndCheck(
             "POST",
             self.url + "/pulls",

@@ -539,12 +539,16 @@ class Repository(Framework.TestCase):
         self.assertListKeyEqual(self.repo.get_subscribers(), lambda u: u.login, ["jacquev6", "equus12", "bilderbuchi", "hcilab", "hattya", "firstthumb", "gregwjacobs", "sagarsane", "liang456", "berndca", "Lyloa"])
 
     def testCreatePull(self):
-        pull = self.repo.create_pull("Pull request created by PyGithub", "Body of the pull request", "topic/RewriteWithGeneratedCode", "BeaverSoftware:master", True)
+        pull = self.repo.create_pull(title="Pull request created by PyGithub", body="Body of the pull request", base="topic/RewriteWithGeneratedCode", head="BeaverSoftware:master", maintainer_can_modify=True)
+        self.assertEqual(pull.id, 1436215)
+
+    def testCreatePullWithNoBody(self):
+        pull = self.repo.create_pull(title="Pull request created by PyGithub", base="topic/RewriteWithGeneratedCode", head="BeaverSoftware:master")
         self.assertEqual(pull.id, 1436215)
 
     def testCreatePullFromIssue(self):
         issue = self.repo.get_issue(32)
-        pull = self.repo.create_pull(issue, "topic/RewriteWithGeneratedCode", "BeaverSoftware:master")
+        pull = self.repo.create_pull(issue=issue, base="topic/RewriteWithGeneratedCode", head="BeaverSoftware:master")
         self.assertEqual(pull.id, 1436310)
 
     def testGetPulls(self):
