@@ -542,6 +542,10 @@ class Repository(Framework.TestCase):
         pull = self.repo.create_pull("Pull request created by PyGithub", "Body of the pull request", "topic/RewriteWithGeneratedCode", "BeaverSoftware:master", True)
         self.assertEqual(pull.id, 1436215)
 
+    def testCreatePullWithNoBody(self):
+        pull = self.repo.create_pull(title="Pull request created by PyGithub", base="topic/RewriteWithGeneratedCode", head="BeaverSoftware:master")
+        self.assertEqual(pull.id, 1436215)
+
     def testCreatePullFromIssue(self):
         issue = self.repo.get_issue(32)
         pull = self.repo.create_pull(issue, "topic/RewriteWithGeneratedCode", "BeaverSoftware:master")

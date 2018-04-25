@@ -1077,30 +1077,33 @@ class Repository(github.GithubObject.CompletableGithubObject):
         :param maintainer_can_modify: bool
         :rtype: :class:`github.PullRequest.PullRequest`
         """
+        if 'title' in kwds and 'body' not in kwds and 'issue' not in kwds:
+            kwds['body'] = github.GithubObject.NotSet
+            return self.__create_pull_from_title(*args, **kwds)
         if len(args) + len(kwds) >= 4:
-            return self.__create_pull_1(*args, **kwds)
+            return self.__create_pull_from_title(*args, **kwds)
         else:
-            return self.__create_pull_2(*args, **kwds)
+            return self.__create_pull_from_issue(*args, **kwds)
 
-    def __create_pull_1(self, title, body, base, head, maintainer_can_modify=github.GithubObject.NotSet):
+    def __create_pull_from_title(self, title, body, base, head, maintainer_can_modify=github.GithubObject.NotSet):
         assert isinstance(title, (str, unicode)), title
-        assert isinstance(body, (str, unicode)), body
+        assert body is github.GithubObject.NotSet or isinstance(body, (str, unicode)), body
         assert isinstance(base, (str, unicode)), base
         assert isinstance(head, (str, unicode)), head
         assert maintainer_can_modify is github.GithubObject.NotSet or isinstance(maintainer_can_modify, bool), maintainer_can_modify
-        if maintainer_can_modify is not github.GithubObject.NotSet:
-            return self.__create_pull(title=title, body=body, base=base, head=head, maintainer_can_modify=maintainer_can_modify)
-        else:
-            return self.__create_pull(title=title, body=body, base=base, head=head)
+        return self.__create_pull(title=title, body=body, base=base, head=head, maintainer_can_modify=maintainer_can_modify)
 
-    def __create_pull_2(self, issue, base, head):
+    def __create_pull_from_issue(self, issue, base, head):
         assert isinstance(issue, github.Issue.Issue), issue
         assert isinstance(base, (str, unicode)), base
         assert isinstance(head, (str, unicode)), head
         return self.__create_pull(issue=issue._identity, base=base, head=head)
 
     def __create_pull(self, **kwds):
-        post_parameters = kwds
+        post_parameters = kwds.copy()
+        for param in kwds:
+            if kwds[param] is github.GithubObject.NotSet:
+                del post_parameters[param]
         headers, data = self._requester.requestJsonAndCheck(
             "POST",
             self.url + "/pulls",
